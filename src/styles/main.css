@@ -1,0 +1,189 @@
+/* ============================================================
+   青云志 · 人生进度簿 —— 全局样式 / 主题变量 / 基础
+   ============================================================ */
+
+:root {
+  /* —— 色彩（暖米色系 + 淡青 + 浅粉 古风调） —— */
+  --bg: #fbf3e4;            /* 主背景：浅米 */
+  --bg-deep: #f2e3c8;       /* 深一档米 */
+  --bg-mist: #eef3ee;       /* 淡青雾 */
+  --card: #fffdf7;          /* 卡片 */
+  --card-2: #f9f1e0;        /* 卡片点缀底 */
+  --ink: #3f3a33;           /* 墨色正文 */
+  --ink-2: #6b6256;         /* 次级 */
+  --ink-3: #9a8f7f;         /* 弱化 */
+  --line: #eadfc8;          /* 描边 */
+  --line-soft: #f0e8d8;
+
+  --cyan: #5b8c85;          /* 淡青主色 */
+  --cyan-deep: #3f6f68;
+  --cyan-soft: #dbe9e4;
+  --pink: #e0a1a1;          /* 浅粉 */
+  --pink-deep: #c97f7f;
+  --pink-soft: #f7e3e1;
+  --red: #c96a4a;           /* 朱砂 */
+  --gold: #d9a94e;          /* 鎏金 */
+  --gold-soft: #f6e9c9;
+  --green: #7a9e6b;
+  --green-soft: #e3ecdc;
+  --blue: #7b95b5;
+  --blue-soft: #e2e9f2;
+  --purple: #a58bb5;
+  --purple-soft: #eee6f2;
+
+  --danger: #c0553f;
+  --warning: #d9922e;
+  --success: #6f9a5c;
+
+  /* —— 字体 —— */
+  --font-title: "Kaiti SC", "STKaiti", "KaiTi", "楷体", "华文楷体", "FZKai-Z03S", serif;
+  --font-body: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Helvetica Neue", Arial, sans-serif;
+
+  /* —— 圆角 / 阴影 —— */
+  --radius: 18px;
+  --radius-sm: 10px;
+  --radius-lg: 26px;
+  --shadow: 0 6px 20px rgba(150, 120, 80, 0.10);
+  --shadow-sm: 0 2px 8px rgba(150, 120, 80, 0.08);
+  --shadow-float: 0 12px 32px rgba(150, 110, 70, 0.18);
+
+  /* —— 布局尺寸 —— */
+  --sidebar-w: 220px;
+  --header-h: 60px;
+  --bottomnav-h: 60px;
+}
+
+/* ---------- Reset ---------- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--bg);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* 水墨山水氛围背景 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(1200px 800px at 85% -10%, rgba(123, 149, 181, 0.10), transparent 60%),
+    radial-gradient(900px 700px at -10% 110%, rgba(224, 161, 161, 0.12), transparent 55%),
+    radial-gradient(700px 600px at 50% 120%, rgba(90, 140, 133, 0.08), transparent 60%),
+    var(--bg);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160' viewBox='0 0 240 160'%3E%3Cpath d='M0 120 Q60 80 120 118 T240 116' fill='none' stroke='%23a98c5f' stroke-opacity='0.10' stroke-width='1.4'/%3E%3Cpath d='M0 140 Q70 110 130 138 T240 136' fill='none' stroke='%235b8c85' stroke-opacity='0.08' stroke-width='1.2'/%3E%3Ccircle cx='190' cy='30' r='6' fill='%235b8c85' stroke-opacity='0.08'/%3E%3C/svg%3E");
+  background-size: 240px 160px;
+}
+
+a { color: var(--cyan-deep); text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+input, textarea, select {
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(91, 140, 133, 0.15);
+}
+textarea { resize: vertical; min-height: 80px; }
+select { appearance: auto; }
+
+/* ---------- 布局骨架 ---------- */
+.app-root { min-height: 100vh; }
+.app-shell { display: flex; min-height: 100vh; }
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: var(--sidebar-w);
+}
+.app-header { position: sticky; top: 0; z-index: 40; }
+.page-container {
+  flex: 1;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+}
+.page-title {
+  font-family: var(--font-title);
+  font-size: 26px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.page-sub { color: var(--ink-3); font-size: 13px; margin-bottom: 18px; }
+
+/* ---------- 通用工具类 ---------- */
+.row { display: flex; align-items: center; }
+.row-between { display: flex; align-items: center; justify-content: space-between; }
+.gap-8 { gap: 8px; } .gap-12 { gap: 12px; } .gap-16 { gap: 16px; }
+.wrap { flex-wrap: wrap; }
+.mt-8 { margin-top: 8px; } .mt-12 { margin-top: 12px; } .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; }
+.mb-8 { margin-bottom: 8px; } .mb-12 { margin-bottom: 12px; } .mb-16 { margin-bottom: 16px; }
+.muted { color: var(--ink-3); }
+.small { font-size: 13px; }
+.bold { font-weight: 600; }
+.grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-auto { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+.text-center { text-align: center; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 桌面端才显示 / 手机端才显示 */
+.desktop-only { display: flex; }
+.mobile-only { display: none; }
+
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #d9c8a8; border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- 页面切换动画 ---------- */
+.page-enter-active { transition: opacity .28s ease, transform .28s ease; }
+.page-leave-active { transition: opacity .18s ease, transform .18s ease; }
+.page-enter-from { opacity: 0; transform: translateY(12px); }
+.page-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 900px) {
+  .app-main { margin-left: 0; }
+  .desktop-only { display: none !important; }
+  .mobile-only { display: flex; }
+  .page-container { padding: 12px 14px 92px; }
+  .page-title { font-size: 22px; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}

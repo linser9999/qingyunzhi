@@ -1,0 +1,119 @@
+/* ============================================================
+   青云志 —— 童真动画古风 · 动画
+   祥云飘过 / 纸鸢飞入 / 灯笼轻晃 / 按钮弹跳 / 弹窗浮现
+   ============================================================ */
+
+/* —— 祥云飘过 —— */
+@keyframes cloud-drift {
+  0%   { transform: translateX(-15vw) translateY(0) scale(1); opacity: 0; }
+  10%  { opacity: .9; }
+  50%  { transform: translateX(50vw) translateY(-14px) scale(1.06); }
+  90%  { opacity: .9; }
+  100% { transform: translateX(115vw) translateY(-4px) scale(1); opacity: 0; }
+}
+.cloud-deco {
+  position: fixed;
+  top: 8%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  animation: cloud-drift 24s linear infinite;
+}
+.cloud-deco svg { display: block; }
+
+/* —— 纸鸢飞入 —— */
+@keyframes kite-fly {
+  0%   { transform: translate(0, 0) rotate(8deg); opacity: 0; }
+  20%  { opacity: 1; }
+  40%  { transform: translate(-30px, -18px) rotate(-6deg); }
+  60%  { transform: translate(14px, -30px) rotate(5deg); }
+  80%  { transform: translate(-12px, -10px) rotate(-3deg); }
+  100% { transform: translate(0, 0) rotate(0); opacity: 1; }
+}
+.kite-enter { animation: kite-fly .9s cubic-bezier(.3,.7,.4,1) both; }
+
+/* —— 漂浮（卡片上的小装饰）—— */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.floaty { animation: floaty 3.4s ease-in-out infinite; }
+
+/* —— 灯笼轻晃 —— */
+@keyframes sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+.sway { animation: sway 4.5s ease-in-out infinite; transform-origin: top center; }
+
+/* —— 按钮弹跳 —— */
+@keyframes bounce-in {
+  0% { transform: scale(.94); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.btn-bounce:active { animation: bounce-in .28s ease; }
+
+/* —— 弹窗浮现 —— */
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(.92) translateY(14px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.pop-in { animation: pop-in .3s cubic-bezier(.2,.9,.3,1.2) both; }
+
+/* —— 渐显 —— */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-in { animation: fade-in .5s ease both; }
+
+/* —— 进度条流动光 —— */
+@keyframes bar-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+.bar-shine::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+  animation: bar-shine 2.2s ease-in-out infinite;
+}
+
+/* —— 数字跳动 —— */
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.pulse-soft { animation: pulse-soft 2.6s ease-in-out infinite; }
+
+/* —— 旋转（加载中）—— */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin { animation: spin 1s linear infinite; }
+
+/* —— 里程碑星星闪烁 —— */
+@keyframes twinkle {
+  0%, 100% { opacity: .55; transform: scale(.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.twinkle { animation: twinkle 2.2s ease-in-out infinite; }
+
+/* —— 打开时组件按序入场 —— */
+.stagger > * { animation: fade-in .5s ease both; }
+.stagger > *:nth-child(1) { animation-delay: .02s; }
+.stagger > *:nth-child(2) { animation-delay: .07s; }
+.stagger > *:nth-child(3) { animation-delay: .12s; }
+.stagger > *:nth-child(4) { animation-delay: .17s; }
+.stagger > *:nth-child(5) { animation-delay: .22s; }
+.stagger > *:nth-child(6) { animation-delay: .27s; }
+.stagger > *:nth-child(7) { animation-delay: .32s; }
+.stagger > *:nth-child(8) { animation-delay: .37s; }
+.stagger > *:nth-child(9) { animation-delay: .42s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud-deco, .floaty, .sway, .pulse-soft { animation: none; }
+}

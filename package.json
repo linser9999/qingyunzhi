@@ -1,0 +1,27 @@
+{
+  "name": "qingyunzhi-life-ledger",
+  "version": "1.0.0",
+  "private": true,
+  "description": "《青云志 · 人生进度簿》—— 童真动画古风风格的个人成长与财务追踪系统",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/",
+    "deploy": "node scripts/deploy-gh-pages.mjs",
+    "icons": "node scripts/gen-icons.mjs",
+    "seed": "node scripts/seed-data.mjs"
+  },
+  "dependencies": {
+    "echarts": "^5.5.0",
+    "pinia": "^2.2.0",
+    "vue": "^3.4.0",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "vite": "^5.2.0",
+    "vite-plugin-pwa": "^0.20.0"
+  }
+}
