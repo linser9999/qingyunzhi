@@ -124,6 +124,21 @@ function actionText(m) { return (m.keyActions || []).join(' / ') }
       </div>
     </div>
     <EmptyState v-else emoji="🗺️" text="还没有规划路线" sub="添加「秋招 → 毕业入职 → 跳槽涨薪 → 副业起步 → 资产积累 → 财富自由」的阶段" />
+
+    <Modal v-if="showModal" :title="editing ? '编辑阶段' : '添加阶段'" icon="🗺️" @close="showModal = false">
+      <div class="form-grid">
+        <div class="form-field full"><label>阶段名称 *</label><input v-model="form.name" placeholder="如：秋招冲刺" /></div>
+        <div class="form-field"><label>开始日期</label><input type="date" v-model="form.startDate" /></div>
+        <div class="form-field"><label>结束日期</label><input type="date" v-model="form.endDate" /></div>
+        <div class="form-field full"><label>目标状态</label><input v-model="form.goalStatus" placeholder="如：拿到 offer 并入职 / 薪资提升 30%" /></div>
+        <div class="form-field full"><label>关键行动（每行一项）</label><textarea :value="form.keyActions.join('\n')" @input="form.keyActions = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)" rows="4" placeholder="完善简历&#10;刷题 100 道&#10;复习八股"></textarea></div>
+        <div class="form-field full"><label class="checkbox-label"><input type="checkbox" v-model="form.achieved" /> 标记为已达成</label></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" @click="showModal = false">取消</button>
+        <button class="btn btn-primary" @click="save">{{ editing ? '保存修改' : '添加阶段' }}</button>
+      </div>
+    </Modal>
   </div>
 </template>
 
