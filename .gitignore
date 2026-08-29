@@ -1,10 +1,10 @@
-node_modules/
+﻿node_modules/
 dist/
 *.local
 .DS_Store
 .vscode/
 *.log
-# data/user-data.json 需纳入版本控制（GitHub 同步的数据源），但注意仓库公开时数据可见
-# 隐私文件（PAT 等）不要提交
+# data/user-data.json 闇€绾冲叆鐗堟湰鎺у埗锛圙itHub 鍚屾鐨勬暟鎹簮锛夛紝浣嗘敞鎰忎粨搴撳叕寮€鏃舵暟鎹彲瑙?# 闅愮鏂囦欢锛圥AT 绛夛級涓嶈鎻愪氦
 .env
 .env.local
+
