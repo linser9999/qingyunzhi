@@ -109,7 +109,7 @@ class GitHubService {
       status === 403 ? '权限不足或触发限流（请检查 PAT 是否有 repo 权限）' :
       status === 409 ? '数据冲突（可能已在其他设备修改）' :
       status === 404 ? '仓库或路径不存在' :
-      status === 422 ? '请求参数无效（sha 过期或分支不存在）' : ''
+      status === 422 ? '请求参数无效（sha 过期或分支不存在。若仓库是新建的空仓库，请先在 GitHub 上创建一个 README 文件以初始化 main 分支）' : ''
   }
 }
 

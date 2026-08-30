@@ -1,18 +1,28 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { REMINDER_EVENT } from '../../utils/reminders.js'
+import { REMINDER_EVENT, playReminderSound } from '../../utils/reminders.js'
 
 const visible = ref(false)
 const current = ref({ title: '', body: '' })
+const persistent = ref(false)
 let hideTimer = null
 
 function show(e) {
-  const { title, body } = e.detail || {}
+  const { title, body, systemAvailable, persistent: forcePersistent } = e.detail || {}
   current.value = { title, body }
   visible.value = true
+
+  // 持久模式：系统通知不可用 或 显式要求持久时，不自动消失
+  persistent.value = forcePersistent === true || systemAvailable === false
+
   if (hideTimer) clearTimeout(hideTimer)
-  // 10 秒后自动关闭
-  hideTimer = setTimeout(() => { visible.value = false }, 10000)
+  if (persistent.value) {
+    // 持久模式：不自动关闭，用户必须手动点击
+    console.log('[InAppReminder] 系统通知不可用，应用内弹窗持久显示')
+  } else {
+    // 正常模式：12 秒后自动关闭（比之前 10 秒稍长）
+    hideTimer = setTimeout(() => { visible.value = false }, 12000)
+  }
 }
 
 function close() {
@@ -31,11 +41,12 @@ onBeforeUnmount(() => {
 
 <template>
   <Transition name="reminder-pop">
-    <div v-if="visible" class="in-app-reminder" @click="close">
+    <div v-if="visible" class="in-app-reminder" :class="{ persistent }" @click="close">
       <div class="reminder-icon">🔔</div>
       <div class="reminder-content">
         <div class="reminder-title">{{ current.title }}</div>
         <div class="reminder-body">{{ current.body }}</div>
+        <div v-if="persistent" class="reminder-persistent-hint">⚠️ 系统通知不可用，此弹窗将持续显示，请点击关闭</div>
       </div>
       <button class="reminder-close" @click.stop="close">✕</button>
     </div>
@@ -59,6 +70,23 @@ onBeforeUnmount(() => {
   gap: 12px;
   cursor: pointer;
   animation: reminderSlideIn .4s cubic-bezier(.34,1.56,.64,1);
+}
+/* 持久模式：更醒目，红色边框 + 脉冲动画 */
+.in-app-reminder.persistent {
+  border-color: var(--danger, #c0553f);
+  background: linear-gradient(135deg, #fff5f3, #fde8e3);
+  box-shadow: 0 0 0 3px rgba(192,85,63,.15), var(--shadow-float);
+  animation: reminderSlideIn .4s cubic-bezier(.34,1.56,.64,1), persistentPulse 2s ease-in-out infinite;
+}
+@keyframes persistentPulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(192,85,63,.15), var(--shadow-float); }
+  50% { box-shadow: 0 0 0 6px rgba(192,85,63,.25), var(--shadow-float); }
+}
+.reminder-persistent-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--danger, #c0553f);
+  font-weight: 600;
 }
 @keyframes reminderSlideIn {
   from { opacity: 0; transform: translateX(40px) scale(.9); }

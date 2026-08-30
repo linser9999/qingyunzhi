@@ -188,3 +188,37 @@ export async function pushLocal(data, meta) {
   const res = await persist(data, meta)
   return res
 }
+
+/**
+ * 强制清空云端数据（绕过安全同步逻辑）
+ * 仅在用户明确确认"同时清空云端"时调用
+ * 将 GitHub 上的数据文件覆盖为空数据结构
+ */
+export async function forceClearRemote(meta) {
+  if (!githubService.isConfigured()) {
+    return { ok: false, message: '未配置 GitHub，无法清空云端' }
+  }
+  try {
+    const empty = emptyData()
+    // 先读远端获取最新 SHA
+    let sha = meta?.sha || null
+    try {
+      const remote = await githubService.readData()
+      if (remote) sha = remote.sha
+    } catch (e) {
+      // 404 说明远端不存在，无需清空
+      if (String(e.message).includes('404')) {
+        return { ok: true, skipped: true, message: '云端数据文件不存在，无需清空' }
+      }
+      console.warn('[forceClearRemote] 读取远端失败:', e.message)
+    }
+    // 直接写入空数据，绕过 persist 的安全检查
+    const newSha = await githubService.writeData(empty, sha)
+    const m = { sha: newSha, syncedAt: Date.now(), source: 'github' }
+    localCache.writeData(empty)
+    localCache.writeMeta(m)
+    return { ok: true, message: '云端数据已清空', sha: newSha }
+  } catch (e) {
+    return { ok: false, message: e.message || '清空云端失败', error: e }
+  }
+}

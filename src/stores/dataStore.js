@@ -2,7 +2,7 @@
  * 全局数据 Store：持有全部业务数据，负责加载、变更、自动同步
  */
 import { defineStore } from 'pinia'
-import { loadData, persist, pullRemote, scheduleSave } from '../services/dataService.js'
+import { loadData, persist, pullRemote, scheduleSave, forceClearRemote } from '../services/dataService.js'
 import { githubService } from '../services/githubService.js'
 import { localCache } from '../services/localCache.js'
 import { emptyData, sampleData } from '../utils/defaultData.js'
@@ -175,10 +175,29 @@ export const useDataStore = defineStore('data', {
       this.data = sampleData()
       this.markDirty()
     },
-    /** 清空所有数据 */
+    /** 清空所有数据（仅本地，同步时会从云端恢复） */
     resetAll() {
       this.data = emptyData()
       this.markDirty()
+    },
+    /** 清空本地 + 云端数据（不可恢复，需用户二次确认后调用） */
+    async resetAllAndCloud() {
+      this.data = emptyData()
+      this.sync = 'saving'
+      this.syncMessage = '正在清空云端数据…'
+      const res = await forceClearRemote(this.meta)
+      if (res.ok) {
+        if (res.sha) this.meta.sha = res.sha
+        this.meta.syncedAt = Date.now()
+        this.sync = 'saved'
+        this.syncMessage = res.message || '本地与云端数据已清空'
+        this.syncError = ''
+      } else {
+        this.sync = 'error'
+        this.syncMessage = res.message || '清空云端失败'
+        this.syncError = res.message || '清空云端失败'
+      }
+      return res
     }
   }
 })
