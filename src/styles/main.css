@@ -183,7 +183,24 @@ select { appearance: auto; }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
   .grid-2 { grid-template-columns: 1fr; }
+  /* 设置页等内联双栏改为单栏 */
+  .grid[style*="1fr 1fr"], .grid[style*="1fr  1fr"] { grid-template-columns: 1fr !important; }
+  /* 图表容器自适应 */
+  .chart-box, .echarts-box { width: 100% !important; height: 260px !important; }
+  /* 表格横向滚动 */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .q-table { min-width: 560px; }
+  /* 弹窗全宽 */
+  .modal-body { padding: 16px; max-height: 90vh; }
+  /* 按钮最小触控面积 */
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 32px; }
+  /* 工具栏换行 */
+  .toolbar { flex-wrap: wrap; gap: 8px; }
+  .toolbar .search { width: 100%; }
 }
 @media (max-width: 480px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: 1fr; }
+  .stat-card .s-value { font-size: 20px; }
 }

@@ -269,6 +269,13 @@
   gap: 8px;
   box-shadow: var(--shadow-float);
   white-space: nowrap;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 手机端：同步条移到底部导航上方，避免遮挡 */
+@media (max-width: 900px) {
+  .sync-bar { bottom: calc(var(--bottomnav-h) + 6px); font-size: 11px; padding: 5px 12px; }
 }
 .sync-bar.ok { background: rgba(111,154,92,.92); }
 .sync-bar.err { background: rgba(192,85,63,.92); }

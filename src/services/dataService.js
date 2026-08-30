@@ -79,8 +79,22 @@ export async function persist(data, meta) {
   try {
     let sha = meta.sha
     let merged = data
+    // 如果没有 sha（首次配置或本地加载），先从 GitHub 读取最新状态
+    if (!sha && githubService.isConfigured()) {
+      try {
+        const remote = await githubService.readData()
+        if (remote) {
+          sha = remote.sha
+          // 远端有数据：按 id 合并（本地优先），避免覆盖远端新增
+          merged = mergeData(remote.data, data)
+        }
+      } catch (e) {
+        // 读取失败（404 等）：sha 保持 null，writeData 将创建新文件
+        if (!String(e.message).includes('404')) console.warn('同步前读取远端失败:', e.message)
+      }
+    }
     try {
-      sha = await githubService.writeData(data, sha)
+      sha = await githubService.writeData(merged, sha)
     } catch (e) {
       const conflict = String(e.message).includes('409') || String(e.message).includes('conflict') || String(e.message).includes('冲突')
       if (!conflict) throw e

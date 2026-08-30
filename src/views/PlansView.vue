@@ -4,6 +4,7 @@ import { useDataStore } from '../stores/dataStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import Modal from '../components/common/Modal.vue'
 import EmptyState from '../components/common/EmptyState.vue'
+import BaseChart from '../components/charts/BaseChart.vue'
 import { todayStr } from '../utils/date.js'
 import { fmtPercent, fmtDuration } from '../utils/format.js'
 import { PLAN_PERIODS, PLAN_STATUS } from '../utils/defaultData.js'
@@ -28,6 +29,55 @@ const filtered = computed(() => {
   if (keyword.value) list = list.filter(p => p.name.includes(keyword.value))
   return list.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
 })
+
+/* —— 统计分析 —— */
+const stats = computed(() => {
+  const all = store.plans
+  const byStatus = {}
+  PLAN_STATUS.forEach(s => { byStatus[s] = all.filter(p => p.status === s).length })
+  const byPriority = { 高: 0, 中: 0, 低: 0 }
+  all.forEach(p => { const k = p.priority === 1 ? '高' : p.priority === 3 ? '低' : '中'; byPriority[k]++ })
+  const byPeriod = {}
+  PLAN_PERIODS.forEach(p => { byPeriod[p] = all.filter(x => x.period === p).length })
+  const done = byStatus['已完成'] || 0
+  const abandoned = byStatus['已放弃'] || 0
+  const active = all.length - done - abandoned
+  const completionRate = all.length ? (done / all.length) * 100 : 0
+  const avgProgress = all.length ? all.reduce((s, p) => s + (p.progress || 0), 0) / all.length : 0
+  const linkedGoals = all.filter(p => p.goalId).length
+  return { total: all.length, byStatus, byPriority, byPeriod, done, abandoned, active, completionRate, avgProgress, linkedGoals }
+})
+
+const statusChartOption = computed(() => ({
+  tooltip: { trigger: 'item', formatter: '{b}: {c} 项 ({d}%)' },
+  legend: { bottom: 0, textStyle: { color: '#6b6256', fontSize: 12 } },
+  series: [{
+    type: 'pie', radius: ['38%', '62%'], center: ['50%', '42%'],
+    itemStyle: { borderRadius: 6, borderColor: '#fffdf7', borderWidth: 2 },
+    label: { show: false },
+    data: [
+      { name: '已完成', value: stats.value.byStatus['已完成'] || 0, itemStyle: { color: '#7a9e6b' } },
+      { name: '进行中', value: stats.value.byStatus['进行中'] || 0, itemStyle: { color: '#d9a94e' } },
+      { name: '未开始', value: stats.value.byStatus['未开始'] || 0, itemStyle: { color: '#7b95b5' } },
+      { name: '已放弃', value: stats.value.byStatus['已放弃'] || 0, itemStyle: { color: '#c96a4a' } }
+    ].filter(d => d.value > 0)
+  }]
+}))
+
+const priorityChartOption = computed(() => ({
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+  grid: { left: 8, right: 12, top: 20, bottom: 6, containLabel: true },
+  xAxis: { type: 'category', data: ['高', '中', '低'], axisLabel: { color: '#9a8f7f' }, axisLine: { lineStyle: { color: '#eadfc8' } } },
+  yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0e8d8' } }, axisLabel: { color: '#9a8f7f' } },
+  series: [{
+    type: 'bar', barWidth: '40%',
+    data: [
+      { value: stats.value.byPriority['高'], itemStyle: { color: '#c96a4a', borderRadius: [6,6,0,0] } },
+      { value: stats.value.byPriority['中'], itemStyle: { color: '#d9a94e', borderRadius: [6,6,0,0] } },
+      { value: stats.value.byPriority['低'], itemStyle: { color: '#7a9e6b', borderRadius: [6,6,0,0] } }
+    ]
+  }]
+}))
 
 function openNew() {
   editing.value = null
@@ -110,6 +160,26 @@ function move(dir, p) {
         <option>全部</option><option v-for="s in PLAN_PERIODS" :key="s">{{ s }}</option>
       </select>
       <input v-model="keyword" placeholder="搜索任务…" class="filter search" />
+    </div>
+
+    <!-- 统计分析 -->
+    <div v-if="store.plans.length" class="mb-16">
+      <div class="grid grid-4 mb-12">
+        <div class="stat-card"><div class="s-label">总计划</div><div class="s-value" style="color:#5b8c85">{{ stats.total }}</div><div class="s-sub">活跃 {{ stats.active }} 项</div></div>
+        <div class="stat-card"><div class="s-label">已完成</div><div class="s-value" style="color:#7a9e6b">{{ stats.done }}</div><div class="s-sub">完成率 {{ fmtPercent(stats.completionRate, 0) }}</div></div>
+        <div class="stat-card"><div class="s-label">进行中</div><div class="s-value" style="color:#d9a94e">{{ stats.byStatus['进行中'] || 0 }}</div><div class="s-sub">平均进度 {{ fmtPercent(stats.avgProgress, 0) }}</div></div>
+        <div class="stat-card"><div class="s-label">关联目标</div><div class="s-value" style="color:#7b95b5">{{ stats.linkedGoals }}</div><div class="s-sub">已放弃 {{ stats.abandoned }} 项</div></div>
+      </div>
+      <div class="grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="q-card">
+          <h3 class="card-title">状态分布</h3>
+          <BaseChart :option="statusChartOption" height="240px" />
+        </div>
+        <div class="q-card">
+          <h3 class="card-title">优先级分布</h3>
+          <BaseChart :option="priorityChartOption" height="240px" />
+        </div>
+      </div>
     </div>
 
     <Card v-if="filtered.length" title="任务清单" icon="🗂️">

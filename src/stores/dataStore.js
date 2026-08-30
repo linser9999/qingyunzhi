@@ -3,6 +3,7 @@
  */
 import { defineStore } from 'pinia'
 import { loadData, persist, pullRemote, scheduleSave } from '../services/dataService.js'
+import { githubService } from '../services/githubService.js'
 import { localCache } from '../services/localCache.js'
 import { emptyData, sampleData } from '../utils/defaultData.js'
 import { uid } from '../utils/format.js'
@@ -18,7 +19,9 @@ export const useDataStore = defineStore('data', {
     sync: 'idle',
     syncMessage: '',
     syncError: '',
-    connected: false // 是否已配置 GitHub
+    connected: false, // 是否已配置 GitHub
+    verified: false, // 配置是否已验证通过
+    verifiedUser: null // 验证通过的 GitHub 用户名
   }),
 
   getters: {
@@ -41,6 +44,18 @@ export const useDataStore = defineStore('data', {
       this.loading = true
       const cfg = localCache.readConfig()
       this.connected = !!(cfg && cfg.token && cfg.owner && cfg.repo)
+      // 配置存在时自动验证连接有效性
+      if (this.connected) {
+        try {
+          const login = await githubService.verify()
+          this.verified = true
+          this.verifiedUser = login
+        } catch (e) {
+          this.verified = false
+          this.verifiedUser = null
+          console.warn('GitHub 配置验证失败:', e.message)
+        }
+      }
       const { data, meta, source, error } = await loadData()
       this.data = data
       this.meta = meta
@@ -107,10 +122,14 @@ export const useDataStore = defineStore('data', {
     setConfig(cfg) {
       localCache.writeConfig(cfg)
       this.connected = !!(cfg && cfg.token && cfg.owner && cfg.repo)
+      this.verified = false
+      this.verifiedUser = null
     },
     clearConfig() {
       localCache.clearConfig()
       this.connected = false
+      this.verified = false
+      this.verifiedUser = null
     },
 
     /* ---------------- 通用集合操作 ---------------- */

@@ -96,17 +96,20 @@ class GitHubService {
   }
 
   _err(res, action) {
-    let msg = ''
-    try {
-      const j = JSON.parse(res._bodyText || res.body || '{}')
-      msg = j.message || ''
-    } catch { /* ignore */ }
-    const hint =
-      res.status === 401 ? 'PAT 无效或已过期' :
-      res.status === 403 ? '权限不足或触发限流（请检查 PAT 是否有 repo 权限）' :
-      res.status === 409 ? '数据冲突（可能已在其他设备修改）' :
-      res.status === 404 ? '仓库或路径不存在' : ''
-    return new Error(`${action}失败 (${res.status})${hint ? '：' + hint : ''}${msg ? ' / ' + msg : ''}`)
+    // 异步读取响应体用于调试（不阻塞错误抛出）
+    res.clone?.().text?.().then(text => {
+      try { console.warn(`[GitHub ${action}] ${res.status}:`, JSON.parse(text).message || text.slice(0, 300)) } catch { /* ignore */ }
+    }).catch(() => {})
+    const hint = this._hint(res.status)
+    return new Error(`${action}失败 (${res.status})${hint ? '：' + hint : ''}`)
+  }
+
+  _hint(status) {
+    return status === 401 ? 'PAT 无效或已过期' :
+      status === 403 ? '权限不足或触发限流（请检查 PAT 是否有 repo 权限）' :
+      status === 409 ? '数据冲突（可能已在其他设备修改）' :
+      status === 404 ? '仓库或路径不存在' :
+      status === 422 ? '请求参数无效（sha 过期或分支不存在）' : ''
   }
 }
 

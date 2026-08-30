@@ -25,6 +25,8 @@ const spendForm = ref({})
 const incomeForm = ref({})
 const filterCategory = ref('全部')
 const filterMode = ref('全部')
+const viewMode = ref('monthly') // 'monthly' | 'yearly'
+const selectedYear = ref(new Date().getFullYear())
 
 const customCategories = computed(() => store.user.customCategories || [])
 const categories = computed(() => [...new Set([...CATEGORIES, ...customCategories.value])])
@@ -97,7 +99,49 @@ const trendOption = computed(() => {
   }
 })
 
-/* —— 表单 —— */
+/* —— 年度统计 —— */
+const yearExpense = computed(() => store.consumptions.filter(c => c.date.startsWith(String(selectedYear.value))).reduce((s, c) => s + Number(c.amount || 0), 0))
+const yearIncome = computed(() => store.incomes.filter(i => i.date.startsWith(String(selectedYear.value))).reduce((s, i) => s + Number(i.amount || 0), 0))
+const yearBalance = computed(() => yearIncome.value - yearExpense.value)
+const yearSavingRate = computed(() => yearIncome.value ? Math.max(0, (yearBalance.value / yearIncome.value) * 100) : 0)
+const yearCategoryMap = computed(() => sumBy(store.consumptions.filter(c => c.date.startsWith(String(selectedYear.value))), 'category'))
+const yearMonths = computed(() => Array.from({ length: 12 }, (_, i) => `${selectedYear.value}-${String(i + 1).padStart(2, '0')}`))
+
+const yearPieOption = computed(() => ({
+  tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+  legend: { bottom: 0, textStyle: { color: '#6b6256', fontSize: 12 }, type: 'scroll' },
+  series: [{
+    type: 'pie', radius: ['38%', '62%'], center: ['50%', '42%'],
+    itemStyle: { borderRadius: 6, borderColor: '#fffdf7', borderWidth: 2 },
+    label: { show: false },
+    data: Object.entries(yearCategoryMap.value).map(([name, value]) => ({ name, value, itemStyle: { color: CATEGORY_COLORS[name] || '#9a8f7f' } }))
+  }]
+}))
+
+const yearTrendOption = computed(() => {
+  const exp = yearMonths.value.map(m => monthlyExpense(store.consumptions, m))
+  const inc = yearMonths.value.map(m => monthlyIncome(store.incomes, m))
+  return {
+    tooltip: { trigger: 'axis', valueFormatter: v => '¥' + Number(v).toLocaleString() },
+    legend: { data: ['支出', '收入'], textStyle: { color: '#6b6256', fontSize: 12 } },
+    grid: { left: 8, right: 12, top: 34, bottom: 0, containLabel: true },
+    xAxis: { type: 'category', data: yearMonths.value.map(m => m.slice(5) + '月'), axisLabel: { color: '#9a8f7f' }, axisLine: { lineStyle: { color: '#eadfc8' } } },
+    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0e8d8' } }, axisLabel: { color: '#9a8f7f', formatter: v => (v / 1000).toFixed(0) + 'k' } },
+    series: [
+      { name: '支出', type: 'bar', data: exp, itemStyle: { color: '#c96a4a', borderRadius: [4,4,0,0] }, barMaxWidth: 24 },
+      { name: '收入', type: 'bar', data: inc, itemStyle: { color: '#7a9e6b', borderRadius: [4,4,0,0] }, barMaxWidth: 24 }
+    ]
+  }
+})
+
+const availableYears = computed(() => {
+  const years = new Set()
+  store.consumptions.forEach(c => years.add(c.date?.slice(0, 4)))
+  store.incomes.forEach(i => years.add(i.date?.slice(0, 4)))
+  store.assets.forEach(a => years.add(a.month?.slice(0, 4)))
+  years.add(String(new Date().getFullYear()))
+  return [...years].filter(Boolean).sort().reverse()
+})
 function openSpend() {
   spendForm.value = { amount: '', date: todayStr(), time: '', category: '餐饮', payMethod: '微信', mode: '必需', note: '', tags: [] }
   showSpend.value = true
@@ -174,12 +218,24 @@ function shiftMonth(key, delta) {
     </div>
 
     <div class="row gap-8 mb-16">
-      <button class="btn btn-sm btn-ghost" @click="prevMonth">◀</button>
-      <span class="month-label">{{ monthLabel(month) }}</span>
-      <button class="btn btn-sm btn-ghost" @click="nextMonth">▶</button>
-      <span v-if="month !== monthKey()" class="q-tag t-gray clickable" @click="month = monthKey()">回到本月</span>
+      <button class="btn btn-sm" :class="viewMode === 'monthly' ? '' : 'btn-ghost'" @click="viewMode = 'monthly'">月度</button>
+      <button class="btn btn-sm" :class="viewMode === 'yearly' ? '' : 'btn-ghost'" @click="viewMode = 'yearly'">年度</button>
+      <span class="spacer"></span>
+      <template v-if="viewMode === 'monthly'">
+        <button class="btn btn-sm btn-ghost" @click="prevMonth">◀</button>
+        <span class="month-label">{{ monthLabel(month) }}</span>
+        <button class="btn btn-sm btn-ghost" @click="nextMonth">▶</button>
+        <span v-if="month !== monthKey()" class="q-tag t-gray clickable" @click="month = monthKey()">回到本月</span>
+      </template>
+      <template v-else>
+        <select v-model.number="selectedYear" class="mini">
+          <option v-for="y in availableYears" :key="y" :value="Number(y)">{{ y }} 年</option>
+        </select>
+      </template>
     </div>
 
+    <!-- 月度视图 -->
+    <template v-if="viewMode === 'monthly'">
     <div class="grid grid-4 mb-16">
       <div class="stat-card"><div class="s-label">月总支出</div><div class="s-value" style="color:#c96a4a">¥ {{ fmtMoney(monthExpense) }}</div><div class="s-sub">{{ spendings.length }} 笔</div></div>
       <div class="stat-card"><div class="s-label">月总收入</div><div class="s-value" style="color:#6f9a5c">¥ {{ fmtMoney(monthIncome) }}</div><div class="s-sub">{{ incomes.length }} 笔</div></div>
@@ -207,6 +263,41 @@ function shiftMonth(key, delta) {
       <BaseChart v-if="store.consumptions.length || store.incomes.length" :option="trendOption" height="260px" />
       <EmptyState v-else emoji="📈" text="暂无数据" />
     </Card>
+    </template>
+
+    <!-- 年度视图 -->
+    <template v-if="viewMode === 'yearly'">
+    <div class="grid grid-4 mb-16">
+      <div class="stat-card"><div class="s-label">年总支出</div><div class="s-value" style="color:#c96a4a">¥ {{ fmtMoney(yearExpense) }}</div><div class="s-sub">{{ selectedYear }} 年</div></div>
+      <div class="stat-card"><div class="s-label">年总收入</div><div class="s-value" style="color:#6f9a5c">¥ {{ fmtMoney(yearIncome) }}</div><div class="s-sub">{{ selectedYear }} 年</div></div>
+      <div class="stat-card"><div class="s-label">年结余</div><div class="s-value" :style="{ color: yearBalance >= 0 ? '#5b8c85' : '#c0553f' }">¥ {{ fmtMoney(yearBalance) }}</div><div class="s-sub">储蓄率 {{ fmtPercent(yearSavingRate, 0) }}</div></div>
+      <div class="stat-card"><div class="s-label">月均支出</div><div class="s-value" style="color:#7b95b5">¥ {{ fmtMoney(yearExpense / 12) }}</div><div class="s-sub">月均收入 ¥{{ fmtMoney(yearIncome / 12) }}</div></div>
+    </div>
+
+    <div class="grid mb-16" style="grid-template-columns: 1fr 1fr;">
+      <Card :title="selectedYear + ' 年支出结构'" icon="🥧">
+        <BaseChart v-if="yearExpense > 0" :option="yearPieOption" height="280px" />
+        <EmptyState v-else emoji="🍃" text="本年暂无支出" />
+      </Card>
+      <Card :title="selectedYear + ' 年月度收支'" icon="📊">
+        <BaseChart v-if="yearExpense > 0 || yearIncome > 0" :option="yearTrendOption" height="280px" />
+        <EmptyState v-else emoji="📈" text="本年暂无数据" />
+      </Card>
+    </div>
+
+    <Card :title="selectedYear + ' 年分类支出明细'" icon="📋" class="mb-16">
+      <div v-if="Object.keys(yearCategoryMap).length" class="tx-list">
+        <div v-for="(val, cat) in yearCategoryMap" :key="cat" class="tx row-between">
+          <div class="row gap-10">
+            <span class="tx-cat" :style="{ background: (CATEGORY_COLORS[cat] || '#9a8f7f') + '22', color: CATEGORY_COLORS[cat] || '#9a8f7f' }">{{ cat }}</span>
+            <span class="small muted">占比 {{ fmtPercent(yearExpense ? (val / yearExpense) * 100 : 0, 1) }}</span>
+          </div>
+          <span class="bold" style="color:#c96a4a">¥ {{ fmtMoney(val) }}</span>
+        </div>
+      </div>
+      <EmptyState v-else emoji="🍃" text="本年暂无支出记录" />
+    </Card>
+    </template>
 
     <!-- 明细 -->
     <Card>

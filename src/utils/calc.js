@@ -120,11 +120,14 @@ export function studyHours(learnings) {
   return learnings.reduce((s, l) => s + Number(l.minutes || 0), 0) / 60
 }
 
-/** 读书完成数 / 在读数 */
+/** 读书完成数 / 在读数（兼容中英文状态值） */
 export function bookStats(books) {
+  const isRead = b => b.status === 'read' || b.status === '已读'
+  const isReading = b => b.status === 'reading' || b.status === '在读'
   return {
-    read: books.filter(b => b.status === 'read').length,
-    reading: books.filter(b => b.status === 'reading').length,
+    read: books.filter(isRead).length,
+    reading: books.filter(isReading).length,
+    abandoned: books.filter(b => b.status === 'abandoned' || b.status === '放弃').length,
     total: books.length
   }
 }
