@@ -7,6 +7,7 @@ import BottomNav from './components/layout/BottomNav.vue'
 import AppHeader from './components/layout/AppHeader.vue'
 import CloudDeco from './components/layout/CloudDeco.vue'
 import SyncBar from './components/common/SyncBar.vue'
+import InAppReminder from './components/common/InAppReminder.vue'
 import { initReminders, checkGoalsAndBudget } from './utils/reminders.js'
 
 const data = useDataStore()
@@ -41,6 +42,7 @@ onMounted(async () => {
     </div>
     <BottomNav class="mobile-only" />
     <SyncBar />
+    <InAppReminder />
     <div class="toast-wrap">
       <transition-group name="toast">
         <div v-for="t in ui.toasts" :key="t.id" class="toast" :class="`toast-${t.type}`">{{ t.message }}</div>

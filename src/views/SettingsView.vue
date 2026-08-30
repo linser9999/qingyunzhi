@@ -1,12 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useDataStore } from '../stores/dataStore.js'
 import { useUiStore } from '../stores/uiStore.js'
 import Card from '../components/common/Card.vue'
 import { githubService } from '../services/githubService.js'
 import { localCache } from '../services/localCache.js'
 import { exportJSON } from '../utils/export.js'
-import { requestNotifyPermission, checkGoalsAndBudget, initReminders } from '../utils/reminders.js'
+import { requestNotifyPermission, checkGoalsAndBudget, initReminders, sendTestNotification, getNotifyPermission } from '../utils/reminders.js'
+import { usePWAInstall } from '../composables/usePWAInstall.js'
 import { ageAt, todayStr } from '../utils/date.js'
 
 const store = useDataStore()
@@ -17,6 +18,14 @@ const gh = ref({})
 const testing = ref(false)
 const settings = ref({})
 const importInput = ref(null)
+
+const { canInstall, isInstalled, install } = usePWAInstall()
+
+const notifyPermission = computed(() => getNotifyPermission())
+const permissionLabel = computed(() => {
+  const map = { granted: '✅ 已授权', denied: '❌ 已拒绝（需在浏览器设置中开启）', default: '⚠️ 未授权', unsupported: '❌ 浏览器不支持' }
+  return map[notifyPermission.value] || notifyPermission.value
+})
 
 onMounted(() => {
   const u = store.user
@@ -103,13 +112,22 @@ async function enableReminders() {
     initReminders()
     ui.toast('已开启浏览器提醒 🔔', 'success')
   } else {
-    ui.toast('未获得通知权限，请允许浏览器通知', 'warning')
+    ui.toast('未获得通知权限，请允许浏览器通知。应用内弹窗仍会提醒。', 'warning')
   }
 }
 function saveReminders() {
   localCache.writeSettings(settings.value)
   initReminders()
   ui.toast('提醒设置已保存', 'success')
+}
+function testNotify() {
+  sendTestNotification()
+  ui.toast('已发送测试通知，请注意查看系统通知或页面弹窗', 'success')
+}
+async function installApp() {
+  const ok = await install()
+  if (ok) ui.toast('安装成功！可从桌面/主屏幕打开', 'success')
+  else ui.toast('安装已取消或浏览器不支持', 'warning')
 }
 </script>
 
@@ -165,9 +183,11 @@ function saveReminders() {
       <Card title="提醒与通知" icon="🔔">
         <div class="form-field mb-12">
           <label class="row gap-8">
-            <input type="checkbox" v-model="settings.remindersEnabled" /> 启用浏览器提醒
+            <input type="checkbox" v-model="settings.remindersEnabled" /> 启用提醒（系统通知 + 页面内弹窗 双通道）
           </label>
+          <div class="small muted mt-4">通知权限状态：{{ permissionLabel }}</div>
         </div>
+
         <div class="form-grid">
           <div class="form-field"><label>每日提醒时间</label><input type="time" v-model="settings.dailyRemind" /></div>
           <div class="form-field"><label>每周提醒时间</label><input type="time" v-model="settings.weeklyRemind" /></div>
@@ -177,17 +197,69 @@ function saveReminders() {
               <option :value="4">周四</option><option :value="5">周五</option><option :value="6">周六</option><option :value="0">周日</option>
             </select>
           </div>
-          <div class="form-field"><label>&nbsp;</label>
-            <button class="btn btn-sm btn-pink" @click="enableReminders">开启通知权限</button>
-          </div>
+          <div class="form-field"><label>每月提醒（每月1号）</label><input type="time" v-model="settings.monthlyRemind" /></div>
         </div>
+
         <div class="form-field mt-12">
           <label class="row gap-8"><input type="checkbox" v-model="settings.deadlineRemind" /> 目标到期前 7 天提醒</label>
         </div>
         <div class="form-field">
           <label class="row gap-8"><input type="checkbox" v-model="settings.budgetAlert" /> 预算超支提醒</label>
         </div>
-        <button class="btn btn-block mt-16" @click="saveReminders">保存提醒设置</button>
+
+        <div class="row gap-8 mt-12 wrap">
+          <button class="btn btn-sm btn-pink" @click="enableReminders">开启通知权限</button>
+          <button class="btn btn-sm btn-gold" @click="testNotify">🔔 发送测试通知</button>
+        </div>
+        <button class="btn btn-block mt-12" @click="saveReminders">保存提醒设置</button>
+
+        <div class="reminder-guide mt-16">
+          <p class="small bold mb-4">📱 手机锁屏通知设置（iQOO / 安卓）</p>
+          <ol class="small muted" style="padding-left:18px;line-height:1.8">
+            <li>先点击上方「开启通知权限」，允许浏览器通知</li>
+            <li>安装为应用后（见下方），进入 <b>设置 → 通知与状态栏 → 应用通知管理</b></li>
+            <li>找到「青云志」或浏览器，开启 <b>允许通知</b> + <b>锁屏显示</b></li>
+            <li>开启 <b>后台弹出界面</b> 和 <b>悬浮通知</b>，即可弹浮窗</li>
+            <li>在电池设置中关闭该应用的 <b>后台限制</b>，保证提醒不被系统杀死</li>
+          </ol>
+        </div>
+      </Card>
+
+      <Card title="安装为应用（PWA）" icon="📲">
+        <p class="small muted mb-12">将青云志安装到电脑桌面或手机主屏幕，体验类似原生 App 的通知、锁屏提醒和离线访问。</p>
+
+        <div v-if="isInstalled" class="pwa-installed">
+          <span style="font-size:32px">✅</span>
+          <div>
+            <div class="bold">已安装为应用</div>
+            <div class="small muted">可从桌面/主屏幕直接打开，通知可显示在锁屏</div>
+          </div>
+        </div>
+
+        <div v-else-if="canInstall">
+          <button class="btn btn-bounce btn-block" style="font-size:15px;padding:12px" @click="installApp">
+            📲 安装到桌面 / 主屏幕
+          </button>
+          <p class="tiny muted mt-8">安装后系统通知可直接弹出，手机端可显示在锁屏界面</p>
+        </div>
+
+        <div v-else class="pwa-manual">
+          <p class="small bold mb-4">🖥️ 电脑端安装方法：</p>
+          <p class="small muted mb-8">Chrome / Edge 地址栏右侧点击「安装」图标（📥），或菜单 → 安装应用</p>
+          <p class="small bold mb-4">📱 手机端安装方法：</p>
+          <p class="small muted">浏览器菜单 →「添加到主屏幕」/「安装应用」，安装后从主屏幕打开</p>
+        </div>
+
+        <div class="mt-16 pwa-tips">
+          <p class="small bold mb-4">💡 安装后的好处：</p>
+          <ul class="small muted" style="padding-left:18px;line-height:1.8">
+            <li>独立窗口运行，无浏览器地址栏干扰</li>
+            <li>系统级通知弹窗，电脑端直接弹桌面</li>
+            <li>手机端通知可显示在锁屏和通知栏</li>
+            <li>离线可查看缓存数据，联网自动同步</li>
+            <li>图标在桌面/主屏幕，一键打开</li>
+          </ul>
+        </div>
       </Card>
     </div>
 
@@ -202,4 +274,23 @@ function saveReminders() {
 <style scoped>
 .tiny { font-size: 11px; }
 code { background: #f3ece0; padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+.reminder-guide {
+  background: var(--gold-soft);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  border-left: 3px solid var(--gold);
+}
+.pwa-installed {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--green-soft); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 12px;
+}
+.pwa-manual {
+  background: var(--cyan-soft); border-radius: var(--radius-sm);
+  padding: 14px; margin-bottom: 12px;
+}
+.pwa-tips {
+  background: var(--pink-soft); border-radius: var(--radius-sm);
+  padding: 12px 14px; border-left: 3px solid var(--pink);
+}
 </style>

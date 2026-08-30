@@ -19,10 +19,14 @@ export default defineConfig({
         theme_color: '#fbf3e4',
         background_color: '#fbf3e4',
         display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
+        orientation: 'any',
         start_url: base,
+        scope: base,
+        categories: ['productivity', 'lifestyle', 'finance'],
         icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
         ]
       },
       workbox: {
