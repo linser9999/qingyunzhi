@@ -7,6 +7,7 @@ import Modal from '../components/common/Modal.vue'
 import EmptyState from '../components/common/EmptyState.vue'
 import { todayStr, cnDate } from '../utils/date.js'
 import { ageAt } from '../utils/date.js'
+import { confirmDelete } from '../utils/format.js'
 import { MILESTONE_PHASES } from '../utils/defaultData.js'
 
 const store = useDataStore()
@@ -49,7 +50,10 @@ function save() {
   showModal.value = false
   ui.toast('路线图已更新 🗺️', 'success')
 }
-function remove(m) { store.removeItem('milestones', m.id); ui.toast('已删除') }
+function remove(m) {
+  if (!confirmDelete(m.title || m.name || '这个里程碑')) return
+  store.removeItem('milestones', m.id); ui.toast('已删除')
+}
 function toggleAchieved(m) {
   const next = !m.achieved
   store.updateItem('milestones', m.id, { achieved: next, achievedDate: next ? todayStr() : '' })

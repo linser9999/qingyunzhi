@@ -80,6 +80,9 @@ export const useDataStore = defineStore('data', {
       this.syncMessage = '正在同步…'
       const res = await persist(this.data, this.meta)
       if (res.ok) {
+        // 远端数据被拉取到本地（本地为空时）
+        if (res.pulled && res.data) this.data = res.data
+        // 合并后的数据
         if (res.merged) this.data = res.merged
         if (res.sha) this.meta.sha = res.sha
         this.meta.syncedAt = Date.now()

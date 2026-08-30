@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal.vue'
 import EmptyState from '../components/common/EmptyState.vue'
 import BaseChart from '../components/charts/BaseChart.vue'
 import { todayStr } from '../utils/date.js'
-import { fmtPercent, fmtDuration } from '../utils/format.js'
+import { fmtPercent, fmtDuration, confirmDelete } from '../utils/format.js'
 import { PLAN_PERIODS, PLAN_STATUS } from '../utils/defaultData.js'
 
 const store = useDataStore()
@@ -112,7 +112,10 @@ function save() {
   showModal.value = false
   ui.toast('计划已保存', 'success')
 }
-function remove(p) { store.removeItem('plans', p.id); ui.toast('计划已删除') }
+function remove(p) {
+  if (!confirmDelete(p.name)) return
+  store.removeItem('plans', p.id); ui.toast('计划已删除')
+}
 function cycleStatus(p) {
   const map = { 未开始: '进行中', 进行中: '已完成', 已完成: '未开始', 已放弃: '未开始' }
   store.updateItem('plans', p.id, { status: map[p.status] })

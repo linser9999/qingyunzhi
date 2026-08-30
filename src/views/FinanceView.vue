@@ -9,7 +9,7 @@ import ProgressBar from '../components/common/ProgressBar.vue'
 import BaseChart from '../components/charts/BaseChart.vue'
 import { todayStr, monthKey, monthLabel, parseDate } from '../utils/date.js'
 import { sumBy, sumAmount, monthlyExpense, monthlyIncome, monthlySeries, lastMonths, categoryByMode } from '../utils/calc.js'
-import { fmtMoney, fmtMoneyShort, fmtPercent, uid } from '../utils/format.js'
+import { fmtMoney, fmtMoneyShort, fmtPercent, uid, confirmDelete } from '../utils/format.js'
 import { exportCSV } from '../utils/export.js'
 import { CATEGORIES, PAY_METHODS, MODES, INCOME_TYPES, CATEGORY_COLORS } from '../utils/defaultData.js'
 
@@ -66,18 +66,29 @@ const pieOption = computed(() => {
 })
 
 const modeBarOption = computed(() => {
-  const cats = categories.value.slice(0, 6)
+  // 按支出金额排序，取前 5 类，避免标签拥挤
+  const monthData = store.consumptions.filter(x => x.date.startsWith(month.value))
+  const catTotals = {}
+  monthData.forEach(c => { catTotals[c.category] = (catTotals[c.category] || 0) + Number(c.amount || 0) })
+  const cats = Object.entries(catTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([cat]) => cat)
   const series = modes.value.map((m, i) => ({
     name: m, type: 'bar', stack: 'total',
-    itemStyle: { color: ['#5b8c85', '#e0a1a1', '#d9a94e', '#a58bb5'][i % 4] },
-    data: cats.map(c => categoryByMode(store.consumptions.filter(x => x.date.startsWith(month.value)), c)[m] || 0)
+    itemStyle: { color: ['#5b8c85', '#e0a1a1', '#d9a94e', '#a58bb5', '#7b95b5'][i % 5] },
+    data: cats.map(c => categoryByMode(monthData, c)[m] || 0)
   }))
   return {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    legend: { bottom: 0, textStyle: { color: '#6b6256', fontSize: 12 } },
-    grid: { left: 8, right: 12, top: 30, bottom: 6, containLabel: true },
-    xAxis: { type: 'category', data: cats, axisLabel: { color: '#9a8f7f' }, axisLine: { lineStyle: { color: '#eadfc8' } } },
-    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0e8d8' } }, axisLabel: { color: '#9a8f7f' } },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: v => '¥' + Number(v).toLocaleString() },
+    legend: { bottom: 0, textStyle: { color: '#6b6256', fontSize: 11 }, itemGap: 12 },
+    grid: { left: 8, right: 12, top: 20, bottom: 10, containLabel: true },
+    xAxis: {
+      type: 'category', data: cats,
+      axisLabel: { color: '#9a8f7f', fontSize: 11, interval: 0, rotate: cats.length > 4 ? 20 : 0 },
+      axisLine: { lineStyle: { color: '#eadfc8' } }
+    },
+    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0e8d8' } }, axisLabel: { color: '#9a8f7f', formatter: v => (v / 1000).toFixed(0) + 'k' } },
     series
   }
 })
@@ -168,8 +179,14 @@ function saveIncome() {
   showIncome.value = false
   ui.toast('已记录一笔收入 💰', 'success')
 }
-function removeSpend(id) { store.removeItem('consumptions', id); ui.toast('已删除') }
-function removeIncome(id) { store.removeItem('incomes', id); ui.toast('已删除') }
+function removeSpend(c) {
+  if (!confirmDelete(`${c.category} ¥${fmtMoney(c.amount)}`)) return
+  store.removeItem('consumptions', c.id); ui.toast('已删除')
+}
+function removeIncome(i) {
+  if (!confirmDelete(`${i.type} ¥${fmtMoney(i.amount)}`)) return
+  store.removeItem('incomes', i.id); ui.toast('已删除')
+}
 
 /* —— 自定义类别 —— */
 const newCat = ref('')
@@ -323,7 +340,7 @@ function shiftMonth(key, delta) {
             </div>
             <div class="row gap-8">
               <span class="bold" style="color:#c96a4a">- ¥{{ fmtMoney(c.amount) }}</span>
-              <button class="btn btn-sm btn-ghost" @click="removeSpend(c.id)">删</button>
+              <button class="btn btn-sm btn-ghost" @click="removeSpend(c)">删</button>
             </div>
           </div>
         </div>
@@ -342,7 +359,7 @@ function shiftMonth(key, delta) {
             </div>
             <div class="row gap-8">
               <span class="bold" style="color:#6f9a5c">+ ¥{{ fmtMoney(c.amount) }}</span>
-              <button class="btn btn-sm btn-ghost" @click="removeIncome(c.id)">删</button>
+              <button class="btn btn-sm btn-ghost" @click="removeIncome(c)">删</button>
             </div>
           </div>
         </div>

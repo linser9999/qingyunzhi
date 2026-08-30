@@ -59,3 +59,8 @@ export function withAlpha(hex, alpha) {
   const a = Math.round(alpha * 255).toString(16).padStart(2, '0')
   return `#${c}${a}`
 }
+
+/** 删除确认弹窗（所有删除操作必须经过此确认） */
+export function confirmDelete(itemName = '该条目') {
+  return window.confirm(`⚠️ 确定要删除「${itemName}」吗？\n\n此操作不可撤销，删除后将同步到云端。`)
+}

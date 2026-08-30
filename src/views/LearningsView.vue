@@ -7,7 +7,7 @@ import Modal from '../components/common/Modal.vue'
 import EmptyState from '../components/common/EmptyState.vue'
 import { todayStr } from '../utils/date.js'
 import { studyHours } from '../utils/calc.js'
-import { fmtDuration } from '../utils/format.js'
+import { fmtDuration, confirmDelete } from '../utils/format.js'
 import { exportCSV } from '../utils/export.js'
 
 const store = useDataStore()
@@ -53,7 +53,10 @@ function save() {
   showModal.value = false
   ui.toast('学习记录已保存 🎓', 'success')
 }
-function remove(l) { store.removeItem('learnings', l.id); ui.toast('已删除') }
+function remove(l) {
+  if (!confirmDelete(l.topic || l.title || '这条学习记录')) return
+  store.removeItem('learnings', l.id); ui.toast('已删除')
+}
 
 function exportAll() {
   exportCSV('学习记录.csv', filtered.value.map(l => ({

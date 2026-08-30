@@ -8,7 +8,7 @@ import EmptyState from '../components/common/EmptyState.vue'
 import { renderMarkdown } from '../utils/markdown.js'
 import { todayStr, weekRange, monthRange, quarterRange, yearRange, monthKey, monthLabel } from '../utils/date.js'
 import { monthlyExpense, monthlyIncome, sumAmount, studyHours, planCompletion, bookStats, netWorth } from '../utils/calc.js'
-import { fmtMoneyShort } from '../utils/format.js'
+import { fmtMoneyShort, confirmDelete } from '../utils/format.js'
 import { REVIEW_TYPES, REVIEW_TYPE_LABEL } from '../utils/defaultData.js'
 
 const store = useDataStore()
@@ -50,7 +50,10 @@ function save() {
   showModal.value = false
   ui.toast('复盘已保存 🧘', 'success')
 }
-function remove(r) { store.removeItem('reviews', r.id); ui.toast('已删除') }
+function remove(r) {
+  if (!confirmDelete(r.title || r.type + '复盘')) return
+  store.removeItem('reviews', r.id); ui.toast('已删除')
+}
 
 /** 自动生成基于真实数据的复盘报告 */
 function autoFill() {

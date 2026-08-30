@@ -7,6 +7,7 @@ import Modal from '../components/common/Modal.vue'
 import EmptyState from '../components/common/EmptyState.vue'
 import { todayStr } from '../utils/date.js'
 import { bookStats } from '../utils/calc.js'
+import { confirmDelete } from '../utils/format.js'
 import { BOOK_STATUS } from '../utils/defaultData.js'
 
 const store = useDataStore()
@@ -54,7 +55,10 @@ function save() {
   showModal.value = false
   ui.toast('书目已保存 📚', 'success')
 }
-function remove(b) { store.removeItem('books', b.id); ui.toast('已删除') }
+function remove(b) {
+  if (!confirmDelete(b.title || b.name || '这本书')) return
+  store.removeItem('books', b.id); ui.toast('已删除')
+}
 function cycleStatus(b) {
   const map = { 在读: '已读', 已读: '在读', 放弃: '在读' }
   store.updateItem('books', b.id, { status: map[b.status], finishDate: map[b.status] === '已读' ? todayStr() : b.finishDate })

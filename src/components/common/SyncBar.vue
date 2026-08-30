@@ -1,10 +1,13 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useDataStore } from '../../stores/dataStore.js'
 import { useUiStore } from '../../stores/uiStore.js'
 
 const data = useDataStore()
 const ui = useUiStore()
+
+const visible = ref(true)
+let hideTimer = null
 
 const info = computed(() => {
   if (!data.connected) return { text: '本地模式 · 未配置云同步', cls: 'local' }
@@ -17,11 +20,23 @@ const info = computed(() => {
   return { text: '待同步 · 点击保存', cls: 'syncing' }
 })
 
+// 同步成功后 4 秒自动隐藏，避免遮挡底部导航；错误/同步中保持显示
+watch(() => data.sync, (val) => {
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
+  if (val === 'saved') {
+    visible.value = true
+    hideTimer = setTimeout(() => { visible.value = false }, 4000)
+  } else {
+    visible.value = true
+  }
+}, { immediate: true })
+
 async function click() {
   if (!data.connected) {
     ui.toast('请先在「设置」中配置 GitHub 同步', 'warning')
     return
   }
+  visible.value = true
   const res = await data.saveNow()
   if (res.ok) ui.toast(res.message, 'success')
   else ui.toast(res.message, 'error')
@@ -29,7 +44,7 @@ async function click() {
 </script>
 
 <template>
-  <button v-if="!data.loading" class="sync-bar" :class="info.cls" @click="click">
+  <button v-if="!data.loading && visible" class="sync-bar" :class="info.cls" @click="click">
     <span :class="{ spin: data.sync === 'saving' }">🪁</span>
     {{ info.text }}
   </button>

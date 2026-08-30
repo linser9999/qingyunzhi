@@ -9,7 +9,7 @@ import ProgressBar from '../components/common/ProgressBar.vue'
 import BaseChart from '../components/charts/BaseChart.vue'
 import { monthKey } from '../utils/date.js'
 import { netWorth, assetCurve, annualGrowthRate, goalProgress, goalTimeRatio } from '../utils/calc.js'
-import { fmtMoney, fmtMoneyShort, fmtPercent } from '../utils/format.js'
+import { fmtMoney, fmtMoneyShort, fmtPercent, confirmDelete } from '../utils/format.js'
 
 const store = useDataStore()
 const ui = useUiStore()
@@ -100,7 +100,10 @@ function save() {
   showModal.value = false
   ui.toast('资产快照已保存 🪙', 'success')
 }
-function remove(a) { store.removeItem('assets', a.id); ui.toast('已删除') }
+function remove(a) {
+  if (!confirmDelete(a.month + ' 资产记录')) return
+  store.removeItem('assets', a.id); ui.toast('已删除')
+}
 </script>
 
 <template>

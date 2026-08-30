@@ -6,7 +6,7 @@ import Modal from '../components/common/Modal.vue'
 import EmptyState from '../components/common/EmptyState.vue'
 import GoalCard from '../components/common/GoalCard.vue'
 import { todayStr } from '../utils/date.js'
-import { uid } from '../utils/format.js'
+import { uid, confirmDelete } from '../utils/format.js'
 import { GOAL_TYPES } from '../utils/defaultData.js'
 
 const store = useDataStore()
@@ -66,6 +66,7 @@ function save() {
   ui.toast('目标已保存', 'success')
 }
 function remove(g) {
+  if (!confirmDelete(g.name + '（含子目标）')) return
   store.removeItem('goals', g.id)
   // 顺带删除其子目标
   for (const c of store.goals.filter(x => x.parentId === g.id)) store.removeItem('goals', c.id)
