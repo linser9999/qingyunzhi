@@ -46,7 +46,7 @@ const pieOption = computed(() => {
   const map = sumBy(consumptions.value, 'category')
   return {
     tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
-    legend: { bottom: 0, textStyle: { color: '#6b6256', fontSize: 12 } },
+    legend: { bottom: 0, type: 'scroll', textStyle: { color: '#6b6256', fontSize: 11 }, itemGap: 10 },
     series: [{
       type: 'pie', radius: ['38%', '64%'], center: ['50%', '42%'],
       itemStyle: { borderRadius: 6, borderColor: '#fffdf7', borderWidth: 2 }, label: { show: false },
@@ -71,19 +71,35 @@ const weekdayImpulse = computed(() => {
 })
 
 const weekdayBarOption = computed(() => {
-  const cats = ['餐饮', '娱乐', '学习', '交通', '其他']
-  const data = cats.map(c => categoryByWeekday(consumptions.value, c))
+  // 从实际数据中取支出最高的前 4 类（避免硬编码和拥挤）
+  const catTotals = {}
+  for (const c of consumptions.value) {
+    catTotals[c.category] = (catTotals[c.category] || 0) + Number(c.amount || 0)
+  }
+  const cats = Object.entries(catTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([cat]) => cat)
   const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+  const palette = ['#5b8c85', '#e0a1a1', '#d9a94e', '#7b95b5', '#a58bb5', '#7a9e6b']
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: v => '¥' + Number(v).toLocaleString() },
-    legend: { bottom: 0, textStyle: { color: '#6b6256', fontSize: 12 } },
-    grid: { left: 8, right: 12, top: 30, bottom: 6, containLabel: true },
-    xAxis: { type: 'category', data: weekdays, axisLabel: { color: '#9a8f7f' }, axisLine: { lineStyle: { color: '#eadfc8' } } },
-    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0e8d8' } }, axisLabel: { color: '#9a8f7f' } },
+    legend: { bottom: 0, type: 'scroll', textStyle: { color: '#6b6256', fontSize: 11 }, itemGap: 10 },
+    grid: { left: 8, right: 12, top: 20, bottom: 8, containLabel: true },
+    xAxis: {
+      type: 'category', data: weekdays,
+      axisLabel: { color: '#9a8f7f', fontSize: 11, interval: 0, rotate: 0 },
+      axisLine: { lineStyle: { color: '#eadfc8' } }
+    },
+    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0e8d8' } }, axisLabel: { color: '#9a8f7f', formatter: v => (v / 1000).toFixed(0) + 'k' } },
     series: cats.map((c, i) => ({
-      name: c, type: 'bar',
-      itemStyle: { color: [CATEGORY_COLORS[c] || '#9a8f7f'][0], borderRadius: i === 0 ? [4, 4, 0, 0] : undefined },
-      data: weekdays.map(w => data[i][w] || 0)
+      name: c, type: 'bar', stack: 'total',
+      itemStyle: { color: palette[i % palette.length] },
+      emphasis: { focus: 'series' },
+      data: weekdays.map(w => {
+        const catData = categoryByWeekday(consumptions.value, c)
+        return catData[w] || 0
+      })
     }))
   }
 })

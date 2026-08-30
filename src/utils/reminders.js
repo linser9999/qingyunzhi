@@ -26,27 +26,41 @@ function getBasePath() {
 export function notify(title, body, opts = {}) {
   const payload = { title, body, ...opts }
 
-  // 通道 1：系统通知（需权限）
+  // 通道 1：系统通知（优先使用 Service Worker showNotification，PWA 后台也能弹）
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    try {
-      const n = new Notification(title, {
-        body,
-        icon: getBasePath() + 'icons/icon-192.png',
-        badge: getBasePath() + 'icons/icon-192.png',
-        vibrate: [200, 100, 200],
-        tag: opts.tag || 'qingyunzhi',
-        requireInteraction: opts.requireInteraction || false,
-      })
-      // 点击通知聚焦应用
-      n.onclick = () => { window.focus(); n.close() }
-    } catch (e) {
-      console.warn('系统通知发送失败:', e)
+    const notifyOptions = {
+      body,
+      icon: getBasePath() + 'icons/icon-192.png',
+      badge: getBasePath() + 'icons/icon-192.png',
+      vibrate: [200, 100, 200],
+      tag: opts.tag || 'qingyunzhi',
+      requireInteraction: opts.requireInteraction !== false, // 默认保持显示直到点击
+      data: { url: window.location.href },
+    }
+    // 优先用 Service Worker（PWA 安装后后台也能弹通知、显示在锁屏）
+    if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready.then(reg => {
+        try { reg.showNotification(title, notifyOptions) }
+        catch (e) { fallbackNotify(title, notifyOptions) }
+      }).catch(() => fallbackNotify(title, notifyOptions))
+    } else {
+      fallbackNotify(title, notifyOptions)
     }
   }
 
   // 通道 2：应用内弹窗（始终触发，确保用户看得到）
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(IN_APP_EVENT, { detail: payload }))
+  }
+}
+
+/** new Notification() 兜底（页面前台时可用） */
+function fallbackNotify(title, options) {
+  try {
+    const n = new Notification(title, options)
+    n.onclick = () => { window.focus(); n.close() }
+  } catch (e) {
+    console.warn('系统通知发送失败:', e)
   }
 }
 
@@ -109,6 +123,8 @@ export function initReminders() {
   }
 
   clearInterval(timer)
+  // 关键：重置 lastHm，确保重新初始化后立即检查能触发当前分钟的提醒
+  lastHm = ''
   timer = setInterval(throttled, 20000) // 每 20 秒检查一次
   // 启动时立即检查一次
   throttled()
